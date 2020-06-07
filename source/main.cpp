@@ -107,8 +107,6 @@ int main()
     for (auto i : charToCode)
         cout << i.first << ":" << i.second << endl;
 
-    bitset<8> byte;
-
     string encoded;
 
     for (auto ch : input)
