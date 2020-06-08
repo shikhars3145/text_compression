@@ -96,7 +96,6 @@ void storeCodes(Node *root, string code, unordered_map<char, string> &codes)
     if (root->isLeaf)
     {
         codes[root->c] = code;
-        // cout << root->c << ":" << code << endl;
     }
 
     else
@@ -145,14 +144,14 @@ void writeMeta(unordered_map<char, string> codes)
             char *ch = new char[1];
             ch = &letter;
 
-            file.write(ch, sizeof(ch));
+            file.write(ch, sizeof(char)); // TODO:
             int code_length = code.second.length();
             file.write(reinterpret_cast<char *>(&code_length), sizeof(code_length));
 
             file.write(code.second.c_str(), code_length);
-
-            // cout << ch << ":" << code_length << ":" << code.second.c_str();
         }
+
+        cout << "Metadata Size:" << file.tellp() << endl;
 
         file.close();
     }
@@ -169,13 +168,24 @@ void writeText(string encoded)
         output_code += char(byte.to_ulong());
     }
 
+    cout << "encoded size:" << encoded.size() << endl;
+    cout << "output code size" << output_code.size();
+
     ofstream file("compressed.bin", ios::out | ios::binary | ios::app);
     if (file.is_open())
     {
+
         long long OCsize = output_code.size();
         file.write(reinterpret_cast<char *>(&OCsize), sizeof(OCsize));
 
-        // file.write(output_code.c_str(), output_code.size());
+        for (long long i = 0; i < output_code.size(); i++)
+        {
+            char *ch = new char;
+            ch = &output_code[i];
+            file.write(ch, sizeof(char)); //TODO:
+        }
+
+        cout << "compressed end" << file.tellp() << endl;
         file.close();
     }
 
@@ -187,23 +197,21 @@ void compress()
 {
     string path;
     // cin<<path;
-    path = "text.txt";
+    path = "text1.txt";
     string input = getData(path);
+
+    cout << "input length:" << input.size() << endl;
+
     unordered_map<char, int> freq = calcFreq(input);
     Node *root = genTree(freq);
 
     unordered_map<char, string> codes;
     storeCodes(root, "", codes);
 
-    // for (auto p : codes)
-    // {
-    //     cout << p.first << ":" << p.second << endl;
-    // }
-
     string encoded = encode(input, codes);
+
     writeMeta(codes);
     writeText(encoded);
-    // cout << encoded;
 }
 
 int readMeta(string path, unordered_map<string, char> &reverse_map_codes)
@@ -213,12 +221,11 @@ int readMeta(string path, unordered_map<string, char> &reverse_map_codes)
     {
         int no_of_codes;
         file.read(reinterpret_cast<char *>(&no_of_codes), sizeof(no_of_codes));
-        // cout << "read meta:" << no_of_codes << endl;
 
         for (int i = 0; i < no_of_codes; i++)
         {
-            char *ch = new char[1];
-            file.read(ch, sizeof(ch));
+            char *ch = new char;
+            file.read(ch, sizeof(char)); //TODO:
 
             int code_length;
             file.read(reinterpret_cast<char *>(&code_length), sizeof(code_length));
@@ -247,23 +254,28 @@ string readText(int pos, string path)
     ifstream file(path, ios::in | ios::binary | ios::ate);
     if (file.is_open())
     {
-
+        string coded = "";
         file.seekg(pos, ios::beg);
+
         long long OCsize;
         file.read(reinterpret_cast<char *>(&OCsize), sizeof(OCsize));
 
-        cout << "OCsize:" << OCsize << endl;
+        while (OCsize--)
+        {
+            char *ch = new char;
+            file.read(ch, sizeof(char)); //TODO:
 
-        char *memblock = new char[OCsize + 1];
-        string coded = "";
+            int num = int(*ch);
+            delete[] ch;
+            bitset<8> byte(num);
+            string charCode = byte.to_string();
+            coded += charCode;
+        }
 
-        file.read(memblock, sizeof(memblock));
+        coded += '\0';
 
-        memblock[OCsize] = '\0';
-        coded = memblock;
         file.close();
 
-        cout << "coded:" << memblock << endl;
         return coded;
     }
     else
@@ -271,19 +283,13 @@ string readText(int pos, string path)
     return "";
 }
 
-string decode(string encoded, unordered_map<string, char> reverse_map_codes)
+string decode(string decoded, unordered_map<string, char> reverse_map_codes)
 {
-    int pad = int(encoded[0]);
-    string decoded = "";
-    for (int i = 1; i < encoded.size(); i++)
-    {
-        int num_code = int(encoded[i]);
-        bitset<8> byte(num_code);
-        decoded += byte.to_string();
-    }
 
+    bitset<8> padByte(decoded.substr(0, 8));
+    int pad = padByte.to_ulong();
     decoded.erase(decoded.end() - pad, decoded.end());
-
+    decoded.erase(0, 8);
     string curr_code = "";
     string text = "";
     for (auto i : decoded)
@@ -296,7 +302,6 @@ string decode(string encoded, unordered_map<string, char> reverse_map_codes)
         }
     }
 
-    // cout << "\nDecoded output:" << text;
     return text;
 }
 
@@ -308,16 +313,8 @@ void decompress()
     unordered_map<string, char> reverse_map_codes;
 
     int pos = readMeta(path, reverse_map_codes);
-    cout << pos << endl;
-
-    for (auto p : reverse_map_codes)
-    {
-        cout << p.first << ":" << p.second << endl;
-    }
 
     string encoded = readText(pos, path);
-
-    // cout << encoded;
 
     string decoded_text = decode(encoded, reverse_map_codes);
     ofstream file("uncompressed.txt", ios::out | ios::trunc);

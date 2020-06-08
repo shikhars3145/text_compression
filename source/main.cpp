@@ -152,6 +152,7 @@ int main()
     cout << "\nOutput Code:" << output_code << "\nSize:" << output_code.size() << "\nIn size" << input.size();
 
     int pad = int(output_code[0]);
+
     string decoded = "";
     for (int i = 1; i < output_code.size(); i++)
     {
