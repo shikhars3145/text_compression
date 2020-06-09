@@ -173,9 +173,6 @@ void writeText(string path, string encoded)
         output_code += char(byte.to_ulong());
     }
 
-    cout << "encoded size:" << encoded.size() << endl;
-    cout << "output code size" << output_code.size();
-
     ofstream file(path, ios::out | ios::binary | ios::app);
     if (file.is_open())
     {
@@ -190,7 +187,6 @@ void writeText(string path, string encoded)
             file.write(ch, sizeof(char));
         }
 
-        cout << "compressed end" << file.tellp() << endl;
         file.close();
     }
 
@@ -201,29 +197,44 @@ void writeText(string path, string encoded)
     }
 }
 
-void compress()
+void compress(bool passed, string passed_path)
 {
+    cout << "Compression" << endl;
     string path;
-    cout << "Enter Path to file to be compressed:";
-    cin >> path;
+    if (!passed)
+    {
+        cout << "Enter Path to file to be compressed:";
+        cin >> path;
+    }
+    else
+    {
+        path = passed_path;
+    }
 
+    cout << "Reading Data..." << endl;
     string input = getData(path);
 
-    cout << "\ninput length:" << input.size() << endl;
+    cout << "Reading Data Complete..." << endl;
 
+    cout << "Creating Huffman Tree..." << endl;
     unordered_map<char, int> freq = calcFreq(input);
     Node *root = genTree(freq);
 
     unordered_map<char, string> codes;
     storeCodes(root, "", codes);
+    cout << "Huffman Tree created..." << endl;
 
+    cout << "Encoding..." << endl;
     string encoded = encode(input, codes);
 
     path.erase(path.find_last_of('.'));
     path.append("_compressed.bin");
 
+    cout << "Creating compressed File..." << endl;
     writeMeta(path, codes);
+    cout << "Metadata Written..." << endl;
     writeText(path, encoded);
+    cout << "Compression Complete..." << endl;
 }
 
 int readMeta(string path, unordered_map<string, char> &reverse_map_codes)
@@ -325,22 +336,37 @@ string decode(string decoded, unordered_map<string, char> reverse_map_codes)
     return text;
 }
 
-void decompress()
+void decompress(bool passed, string passed_path)
 {
+    cout << "Decompress..." << endl;
+
     string path;
-    cout << "Enter Path to file to be decompressed:";
-    cin >> path;
-    // path = "compressed.bin";
+    if (!passed)
+    {
+        cout << "Enter Path to file to be decompressed:";
+        cin >> path;
+    }
+    else
+    {
+        path = passed_path;
+    }
+
     unordered_map<string, char> reverse_map_codes;
 
     int pos = readMeta(path, reverse_map_codes);
 
+    cout << "Metadata read..." << endl;
+
     string encoded = readText(pos, path);
+
+    cout << "Coded data read..." << endl;
 
     string decoded_text = decode(encoded, reverse_map_codes);
 
-    path.erase(path.find_last_of('.'));
-    path.append("_compressed.txt");
+    cout << "Data decoded..." << endl;
+
+    path.erase(path.find_last_of('_'));
+    path.append("_decompressed.txt");
 
     ofstream file(path, ios::out | ios::trunc);
     if (file.is_open())
@@ -354,19 +380,31 @@ void decompress()
              << endl;
         exit(0);
     }
+
+    cout << "Decompression Complete..." << endl;
 }
 
-int main()
+int main(int argc, char **argv)
 {
-    char ch;
-    cout << "\nCompress or decompress(C/D):";
-    cin >> ch;
-    while (!(ch == 'C' || ch == 'c' || ch == 'D' || ch == 'd'))
+    if (argc == 1)
     {
-        cout << "\n"
-             << "Enter \'C\' to Compress or \'D\' to decompress:";
+        char ch;
+        cout << "\nCompress or decompress(C/D):";
         cin >> ch;
+        while (!(ch == 'C' || ch == 'c' || ch == 'D' || ch == 'd'))
+        {
+            cout << "\n"
+                 << "Enter \'C\' to Compress or \'D\' to decompress:";
+            cin >> ch;
+        }
+        ch == 'C' || ch == 'c' ? compress(false, "") : decompress(false, "");
+        return 0;
     }
-    ch == 'C' || ch == 'c' ? compress() : decompress();
-    return 0;
+
+    if (argc == 3)
+    {
+        char ch = argv[1][1];
+        ch == 'C' || ch == 'c' ? compress(true, argv[2]) : decompress(true, argv[2]);
+        return 0;
+    }
 }
