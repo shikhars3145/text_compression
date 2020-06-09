@@ -206,10 +206,7 @@ void compress()
     string path;
     cout << "Enter Path to file to be compressed:";
     cin >> path;
-    cout << endl
-         << path;
-    // cin >> path;
-    // path = "./text1.txt";
+
     string input = getData(path);
 
     cout << "\ninput length:" << input.size() << endl;
@@ -222,7 +219,8 @@ void compress()
 
     string encoded = encode(input, codes);
 
-    path.insert(path.find_last_of('.'), "_compressed");
+    path.erase(path.find_last_of('.'));
+    path.append("_compressed.bin");
 
     writeMeta(path, codes);
     writeText(path, encoded);
@@ -330,8 +328,9 @@ string decode(string decoded, unordered_map<string, char> reverse_map_codes)
 void decompress()
 {
     string path;
-    // cin<<path;
-    path = "compressed.bin";
+    cout << "Enter Path to file to be decompressed:";
+    cin >> path;
+    // path = "compressed.bin";
     unordered_map<string, char> reverse_map_codes;
 
     int pos = readMeta(path, reverse_map_codes);
@@ -339,7 +338,11 @@ void decompress()
     string encoded = readText(pos, path);
 
     string decoded_text = decode(encoded, reverse_map_codes);
-    ofstream file("uncompressed.txt", ios::out | ios::trunc);
+
+    path.erase(path.find_last_of('.'));
+    path.append("_compressed.txt");
+
+    ofstream file(path, ios::out | ios::trunc);
     if (file.is_open())
     {
         file << decoded_text;
